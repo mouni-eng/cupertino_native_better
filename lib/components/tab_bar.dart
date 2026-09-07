@@ -285,6 +285,12 @@ class _CNTabBarState extends State<CNTabBar> {
   int? _lastBg;
   bool? _lastIsDark;
   double? _intrinsicHeight;
+
+  /// Height used until the native `getIntrinsicSize` reply lands: a 49pt
+  /// UITabBar plus the 14pt of Liquid Glass pill room the native side
+  /// positions the bar below. The old 50pt fallback was 13pt short, which
+  /// clipped the labels whenever that reply was lost on a cold start.
+  static const double _fallbackHeight = 63.0;
   double? _intrinsicWidth;
   List<String>? _lastLabels;
   List<String>? _lastSymbols;
@@ -542,7 +548,7 @@ class _CNTabBarState extends State<CNTabBar> {
     // destroyed, so when the transition completes the bar is just
     // there with the correct selected index, no recreate animation.
     final hideForModal = _modalUp && widget.autoHideOnModal;
-    final h = widget.height ?? _intrinsicHeight ?? 50.0;
+    final h = widget.height ?? _intrinsicHeight ?? _fallbackHeight;
 
     // Modal hide must DESTROY the platform view — see comment above.
     if (hideForModal) {
@@ -853,7 +859,7 @@ class _CNTabBarState extends State<CNTabBar> {
             },
           );
 
-    final h = widget.height ?? _intrinsicHeight ?? 50.0;
+    final h = widget.height ?? _intrinsicHeight ?? _fallbackHeight;
     if (!widget.split && widget.shrinkCentered) {
       final w = _intrinsicWidth;
       return ClipRect(
@@ -907,6 +913,12 @@ class _CNTabBarState extends State<CNTabBar> {
               'index': widget.currentIndex,
             });
             await _channel?.invokeMethod('refresh');
+            // Cold start can answer the first getIntrinsicSize before the bar
+            // has laid out, which returns height 0 and leaves us on the
+            // fallback for good. Retry while it is still unknown.
+            if (_intrinsicHeight == null || _intrinsicWidth == null) {
+              await _requestIntrinsicSize();
+            }
           } catch (e) {
             // Ignore MissingPluginException during hot reload or view recreation
           }
@@ -919,6 +931,12 @@ class _CNTabBarState extends State<CNTabBar> {
               'index': widget.currentIndex,
             });
             await _channel?.invokeMethod('refresh');
+            // Cold start can answer the first getIntrinsicSize before the bar
+            // has laid out, which returns height 0 and leaves us on the
+            // fallback for good. Retry while it is still unknown.
+            if (_intrinsicHeight == null || _intrinsicWidth == null) {
+              await _requestIntrinsicSize();
+            }
           } catch (e) {
             // Ignore when platform view is being recreated
           }

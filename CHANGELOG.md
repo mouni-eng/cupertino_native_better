@@ -6,6 +6,12 @@ Controls the minimum width of the split right pill (default `44` keeps previous 
 
 The value is honoured on both split layout paths. The proportional path — the one that actually runs on the first layout pass, when `container.bounds.width` is still 0 — previously ignored the minimum entirely; its proportional width constraint is now `.defaultHigh` so a required `>= splitRightMinWidth * rightCount` constraint can widen the bar past its `rightCount / count` fraction. With the default 44 the fraction still wins, so existing layouts are unchanged.
 
+### Fixed — split bar could render 13pt too short on a cold start
+
+`CNTabBar`'s height fallback was `50.0`, but the native side positions the bars 14pt below the container top and reports `barHeight + 14` (~63) from `getIntrinsicSize`. Whenever that reply was lost — a cold start can answer the first request before `UITabBar` has laid out, returning height 0, which the `h > 0` guard drops — the widget stayed on the 13pt-short fallback for its whole lifetime and the labels were clipped.
+
+The fallback is now `63.0` (49pt bar + 14pt pill room), and the two post-create settle timers the widget already runs retry `getIntrinsicSize` while the size is still unknown.
+
 ## 1.6.0
 
 > Minor rather than patch because `CNGlassEffect` gains a value (`clear`). That is source-breaking for anyone with an exhaustive `switch` over the enum. 1.5.5 was tagged during development and never published; everything it contained is here.

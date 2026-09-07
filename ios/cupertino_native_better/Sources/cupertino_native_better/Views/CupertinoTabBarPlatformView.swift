@@ -455,7 +455,8 @@ channel.setMethodCallHandler { [weak self] call, result in
           let dynamicHeight = size.height + extraHeight + pillTopRoom
           result(["width": Double(size.width), "height": Double(dynamicHeight)])
         } else {
-          result(["width": Double(self.container.bounds.width), "height": 50.0])
+          // 49pt bar + the 14pt pill room the layout reserves; 50 clipped labels.
+          result(["width": Double(self.container.bounds.width), "height": 63.0])
         }
       case "setItems":
         if let args = call.arguments as? [String: Any] {
@@ -709,6 +710,7 @@ channel.setMethodCallHandler { [weak self] call, result in
             let adjustedRightWidth = max(rightWidth, rightMinItemWidth * CGFloat(rightCount))
             let adjustedLeftWidth = max(leftWidth, minItemWidth * CGFloat(count - rightCount))
             let adjustedTotal = adjustedLeftWidth + adjustedRightWidth + spacing
+            
             if adjustedTotal > self.container.bounds.width {
               let rightFraction = CGFloat(rightCount) / CGFloat(count)
               let rTop = right.topAnchor.constraint(equalTo: self.container.topAnchor, constant: 14)
