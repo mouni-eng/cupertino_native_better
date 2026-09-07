@@ -884,4 +884,34 @@ void main() {
       await drainPlatformViewGuard(tester);
     });
   });
+
+  group('CNTabBar.splitRightMinWidth', () {
+    test('defaults to 44pt, Apple\'s minimum touch target', () {
+      final bar = CNTabBar(
+        items: [
+          CNTabBarItem(label: 'Home', icon: CNSymbol('house')),
+          CNTabBarItem(label: 'Cart', icon: CNSymbol('cart')),
+        ],
+        currentIndex: 0,
+        onTap: (_) {},
+      );
+
+      expect(bar.splitRightMinWidth, 44.0);
+    });
+
+    test('keeps the caller-supplied width', () {
+      final bar = CNTabBar(
+        items: [
+          CNTabBarItem(label: 'Home', icon: CNSymbol('house')),
+          CNTabBarItem(label: 'Cart', icon: CNSymbol('cart')),
+        ],
+        currentIndex: 0,
+        onTap: (_) {},
+        split: true,
+        splitRightMinWidth: 60,
+      );
+
+      expect(bar.splitRightMinWidth, 60.0);
+    });
+  });
 }

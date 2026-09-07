@@ -1,3 +1,11 @@
+## 1.6.0+fork.1
+
+### Added — `CNTabBar.splitRightMinWidth`
+
+Controls the minimum width of the split right pill (default `44` keeps previous behaviour). Applied per trailing item as `splitRightMinWidth * rightCount`, so a single trailing tab can render as a proper 56-64pt circular pill instead of being floored at Apple's 44pt touch target.
+
+The value is honoured on both split layout paths. The proportional path — the one that actually runs on the first layout pass, when `container.bounds.width` is still 0 — previously ignored the minimum entirely; its proportional width constraint is now `.defaultHigh` so a required `>= splitRightMinWidth * rightCount` constraint can widen the bar past its `rightCount / count` fraction. With the default 44 the fraction still wins, so existing layouts are unchanged.
+
 ## 1.6.0
 
 > Minor rather than patch because `CNGlassEffect` gains a value (`clear`). That is source-breaking for anyone with an exhaustive `switch` over the enum. 1.5.5 was tagged during development and never published; everything it contained is here.

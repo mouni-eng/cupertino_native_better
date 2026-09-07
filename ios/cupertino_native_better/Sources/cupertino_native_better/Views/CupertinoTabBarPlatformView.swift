@@ -28,6 +28,7 @@ class CupertinoTabBarPlatformView: NSObject, FlutterPlatformView, UITabBarDelega
   private var leftInsetVal: CGFloat = 0
   private var rightInsetVal: CGFloat = 0
   private var splitSpacingVal: CGFloat = 12 // Apple's recommended spacing for visual separation
+  private var splitRightMinWidthVal: CGFloat = 44.0 // per-item minimum width of the split right bar
   private var currentIconSizes: [CGFloat] = [] // Track icon sizes for dynamic height calculation
   private var labelFontFamily: String? = nil
   private var labelFontSize: CGFloat = 0 // 0 means system default (~10pt)
@@ -95,6 +96,7 @@ class CupertinoTabBarPlatformView: NSObject, FlutterPlatformView, UITabBarDelega
       if let s = dict["split"] as? NSNumber { split = s.boolValue }
       if let rc = dict["rightCount"] as? NSNumber { rightCount = rc.intValue }
       if let sp = dict["splitSpacing"] as? NSNumber { splitSpacingVal = CGFloat(truncating: sp) }
+      if let mw = dict["splitRightMinWidth"] as? NSNumber { splitRightMinWidthVal = CGFloat(truncating: mw) }
       // content insets controlled by Flutter padding; keep zero here
     }
     // Font is read after super.init() below to use self.
@@ -239,7 +241,9 @@ class CupertinoTabBarPlatformView: NSObject, FlutterPlatformView, UITabBarDelega
       // Ensure minimum width for single items to maintain circular shape
       // Following Apple's HIG: minimum 44pt touch target, with 8pt spacing
       let minItemWidth: CGFloat = 44.0 // Apple's minimum touch target size
-      let adjustedRightWidth = max(rightWidth, minItemWidth * CGFloat(rightCount))
+      // Caller-supplied floor never drops the right pill below the built-in minimum
+      let rightMinItemWidth = max(minItemWidth, splitRightMinWidthVal)
+      let adjustedRightWidth = max(rightWidth, rightMinItemWidth * CGFloat(rightCount))
       let adjustedLeftWidth = max(leftWidth, minItemWidth * CGFloat(count - rightCount))
       let adjustedTotal = adjustedLeftWidth + adjustedRightWidth + spacing
       
@@ -256,11 +260,17 @@ class CupertinoTabBarPlatformView: NSObject, FlutterPlatformView, UITabBarDelega
         rBottom.priority = .defaultHigh
         lTop.priority = .defaultHigh
         lBottom.priority = .defaultHigh
+        // The container has no width yet on the first pass, so this branch — not the
+        // fixed-width one below — is what actually lays the split bars out. Let the
+        // proportional width yield to the caller's floor so splitRightMinWidth applies here.
+        let rProportional = right.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: rightFraction)
+        rProportional.priority = .defaultHigh
         NSLayoutConstraint.activate([
           right.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -rightInset),
           rTop,
           rBottom,
-          right.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: rightFraction),
+          rProportional,
+          right.widthAnchor.constraint(greaterThanOrEqualToConstant: rightMinItemWidth * CGFloat(rightCount)),
           left.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: leftInset),
           left.trailingAnchor.constraint(equalTo: right.leadingAnchor, constant: -spacing),
           lTop,
@@ -586,6 +596,7 @@ channel.setMethodCallHandler { [weak self] call, result in
           let leftInset = self.leftInsetVal
           let rightInset = self.rightInsetVal
           if let sp = args["splitSpacing"] as? NSNumber { self.splitSpacingVal = CGFloat(truncating: sp) }
+          if let mw = args["splitRightMinWidth"] as? NSNumber { self.splitRightMinWidthVal = CGFloat(truncating: mw) }
           let selectedIndex = (args["selectedIndex"] as? NSNumber)?.intValue ?? 0
           // Remove existing bars
           self.tabBar?.removeFromSuperview(); self.tabBar = nil
@@ -694,10 +705,10 @@ channel.setMethodCallHandler { [weak self] call, result in
             
             // Ensure minimum width for single items to maintain circular shape
             let minItemWidth: CGFloat = 50.0 // Minimum width per item
-            let adjustedRightWidth = max(rightWidth, minItemWidth * CGFloat(rightCount))
+            let rightMinItemWidth = max(minItemWidth, self.splitRightMinWidthVal)
+            let adjustedRightWidth = max(rightWidth, rightMinItemWidth * CGFloat(rightCount))
             let adjustedLeftWidth = max(leftWidth, minItemWidth * CGFloat(count - rightCount))
             let adjustedTotal = adjustedLeftWidth + adjustedRightWidth + spacing
-            
             if adjustedTotal > self.container.bounds.width {
               let rightFraction = CGFloat(rightCount) / CGFloat(count)
               let rTop = right.topAnchor.constraint(equalTo: self.container.topAnchor, constant: 14)
@@ -708,11 +719,14 @@ channel.setMethodCallHandler { [weak self] call, result in
               rBottom.priority = .defaultHigh
               lTop.priority = .defaultHigh
               lBottom.priority = .defaultHigh
+              let rProportional = right.widthAnchor.constraint(equalTo: self.container.widthAnchor, multiplier: rightFraction)
+              rProportional.priority = .defaultHigh
               NSLayoutConstraint.activate([
                 right.trailingAnchor.constraint(equalTo: self.container.trailingAnchor, constant: -rightInset),
                 rTop,
                 rBottom,
-                right.widthAnchor.constraint(equalTo: self.container.widthAnchor, multiplier: rightFraction),
+                rProportional,
+                right.widthAnchor.constraint(greaterThanOrEqualToConstant: rightMinItemWidth * CGFloat(rightCount)),
                 left.leadingAnchor.constraint(equalTo: self.container.leadingAnchor, constant: leftInset),
                 left.trailingAnchor.constraint(equalTo: right.leadingAnchor, constant: -spacing),
                 lTop,

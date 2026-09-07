@@ -109,6 +109,7 @@ class CNTabBar extends StatefulWidget {
     this.shrinkCentered = true,
     this.splitSpacing =
         12.0, // Apple's recommended spacing for visual separation
+    this.splitRightMinWidth = 44.0,
     this.searchItem,
     this.searchController,
     this.labelFontFamily,
@@ -174,6 +175,11 @@ class CNTabBar extends StatefulWidget {
   ///
   /// Defaults to 12pt following Apple's HIG recommendations for visual separation.
   final double splitSpacing; // gap between left/right halves when split
+
+  /// Minimum width, in points, of the right-hand bar in split mode. Applied per
+  /// trailing item (`splitRightMinWidth * rightCount`). Defaults to 44, Apple's
+  /// minimum touch target — the previous hard-coded behaviour.
+  final double splitRightMinWidth;
 
   /// Optional search tab configuration.
   ///
@@ -287,6 +293,7 @@ class _CNTabBarState extends State<CNTabBar> {
   bool? _lastSplit;
   int? _lastRightCount;
   double? _lastSplitSpacing;
+  double? _lastSplitRightMinWidth;
   double? _lastIconSize;
   String? _lastLabelFontFamily;
   double? _lastLabelFontSize;
@@ -737,6 +744,7 @@ class _CNTabBarState extends State<CNTabBar> {
       'split': _hasSearch ? true : widget.split,
       'rightCount': widget.rightCount,
       'splitSpacing': widget.splitSpacing,
+      'splitRightMinWidth': widget.splitRightMinWidth,
       'style': capturedStyle
         ..addAll({
           if (capturedBackgroundColor != null)
@@ -870,6 +878,7 @@ class _CNTabBarState extends State<CNTabBar> {
     _lastSplit = widget.split;
     _lastRightCount = widget.rightCount;
     _lastSplitSpacing = widget.splitSpacing;
+    _lastSplitRightMinWidth = widget.splitRightMinWidth;
     _lastLabelFontFamily = widget.labelFontFamily;
     _lastLabelFontSize = widget.labelFontSize;
 
@@ -1098,16 +1107,19 @@ class _CNTabBarState extends State<CNTabBar> {
       // Layout updates (split / insets)
       if (_lastSplit != widget.split ||
           _lastRightCount != widget.rightCount ||
-          _lastSplitSpacing != widget.splitSpacing) {
+          _lastSplitSpacing != widget.splitSpacing ||
+          _lastSplitRightMinWidth != widget.splitRightMinWidth) {
         await ch.invokeMethod('setLayout', {
           'split': widget.split,
           'rightCount': widget.rightCount,
           'splitSpacing': widget.splitSpacing,
+          'splitRightMinWidth': widget.splitRightMinWidth,
           'selectedIndex': widget.currentIndex,
         });
         _lastSplit = widget.split;
         _lastRightCount = widget.rightCount;
         _lastSplitSpacing = widget.splitSpacing;
+        _lastSplitRightMinWidth = widget.splitRightMinWidth;
         _requestIntrinsicSize();
       }
     } catch (e) {

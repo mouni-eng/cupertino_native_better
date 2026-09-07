@@ -262,6 +262,7 @@ CNTabBar(
   iconSize: 25, // Optional: customize icon size (default ~25pt)
   split: true, // Separates tabs when scrolling
   rightCount: 1, // Number of tabs pinned to the right
+  splitRightMinWidth: 60, // Optional: widen the right pill (default 44)
 )
 ```
 
