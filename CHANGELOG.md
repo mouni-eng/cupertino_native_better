@@ -4,7 +4,7 @@
 
 Controls the minimum width of the split right pill (default `44` keeps previous behaviour). Applied per trailing item as `splitRightMinWidth * rightCount`, so a single trailing tab can render as a proper 56-64pt circular pill instead of being floored at Apple's 44pt touch target.
 
-The value is honoured on both split layout paths. The proportional path — the one that actually runs on the first layout pass, when `container.bounds.width` is still 0 — previously ignored the minimum entirely; its proportional width constraint is now `.defaultHigh` so a required `>= splitRightMinWidth * rightCount` constraint can widen the bar past its `rightCount / count` fraction. With the default 44 the fraction still wins, so existing layouts are unchanged.
+The value is honoured on both split layout paths. The proportional path — the one that actually runs on the first layout pass, when `container.bounds.width` is still 0 — previously ignored the minimum entirely; its proportional width constraint is now `.defaultHigh` so a required `>= splitRightMinWidth * rightCount` constraint can widen the bar past its `rightCount / count` fraction. The minimum is only added when the caller asks for more than the branch's built-in floor, so at the default the constraint set is exactly the pre-patch one. Priorities degrade in a defined order on a container too narrow for both bars — proportional width (750) yields first, then the right minimum (751), and the left bar's own floor (752) gives last, so the left bar can never be squeezed to zero.
 
 ### Fixed — split bar could render 13pt too short on a cold start
 

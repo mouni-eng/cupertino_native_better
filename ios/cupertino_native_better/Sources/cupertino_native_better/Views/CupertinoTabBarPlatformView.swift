@@ -261,21 +261,34 @@ class CupertinoTabBarPlatformView: NSObject, FlutterPlatformView, UITabBarDelega
         lTop.priority = .defaultHigh
         lBottom.priority = .defaultHigh
         // The container has no width yet on the first pass, so this branch — not the
-        // fixed-width one below — is what actually lays the split bars out. Let the
-        // proportional width yield to the caller's floor so splitRightMinWidth applies here.
+        // fixed-width one below — is what actually lays the split bars out.
         let rProportional = right.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: rightFraction)
         rProportional.priority = .defaultHigh
-        NSLayoutConstraint.activate([
+        var constraints: [NSLayoutConstraint] = [
           right.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -rightInset),
           rTop,
           rBottom,
           rProportional,
-          right.widthAnchor.constraint(greaterThanOrEqualToConstant: rightMinItemWidth * CGFloat(rightCount)),
           left.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: leftInset),
           left.trailingAnchor.constraint(equalTo: right.leadingAnchor, constant: -spacing),
           lTop,
           lBottom,
-        ])
+        ]
+        // Only a caller asking for more than the built-in floor changes this branch;
+        // at the default the constraints below are absent and the layout is unchanged.
+        // Priorities degrade in order on a container too narrow for both bars: the
+        // proportional width (750) yields first, then the right minimum (751), and the
+        // left bar's own floor (752) is the last to give, so it can never be squeezed
+        // to zero without warning.
+        if splitRightMinWidthVal > minItemWidth {
+          let rMin = right.widthAnchor.constraint(greaterThanOrEqualToConstant: rightMinItemWidth * CGFloat(rightCount))
+          rMin.priority = UILayoutPriority(751)
+          let lMin = left.widthAnchor.constraint(greaterThanOrEqualToConstant: minItemWidth * CGFloat(count - rightCount))
+          lMin.priority = UILayoutPriority(752)
+          constraints.append(rMin)
+          constraints.append(lMin)
+        }
+        NSLayoutConstraint.activate(constraints)
       } else {
         let rTop = right.topAnchor.constraint(equalTo: container.topAnchor, constant: 14)
         let rBottom = right.bottomAnchor.constraint(equalTo: container.bottomAnchor)
@@ -723,17 +736,27 @@ channel.setMethodCallHandler { [weak self] call, result in
               lBottom.priority = .defaultHigh
               let rProportional = right.widthAnchor.constraint(equalTo: self.container.widthAnchor, multiplier: rightFraction)
               rProportional.priority = .defaultHigh
-              NSLayoutConstraint.activate([
+              var constraints: [NSLayoutConstraint] = [
                 right.trailingAnchor.constraint(equalTo: self.container.trailingAnchor, constant: -rightInset),
                 rTop,
                 rBottom,
                 rProportional,
-                right.widthAnchor.constraint(greaterThanOrEqualToConstant: rightMinItemWidth * CGFloat(rightCount)),
                 left.leadingAnchor.constraint(equalTo: self.container.leadingAnchor, constant: leftInset),
                 left.trailingAnchor.constraint(equalTo: right.leadingAnchor, constant: -spacing),
                 lTop,
                 lBottom,
-              ])
+              ]
+              // See the initial-build block: gated on the caller exceeding the built-in
+              // floor, and priority-ordered 750 < 751 < 752 so the left bar gives last.
+              if self.splitRightMinWidthVal > minItemWidth {
+                let rMin = right.widthAnchor.constraint(greaterThanOrEqualToConstant: rightMinItemWidth * CGFloat(rightCount))
+                rMin.priority = UILayoutPriority(751)
+                let lMin = left.widthAnchor.constraint(greaterThanOrEqualToConstant: minItemWidth * CGFloat(count - rightCount))
+                lMin.priority = UILayoutPriority(752)
+                constraints.append(rMin)
+                constraints.append(lMin)
+              }
+              NSLayoutConstraint.activate(constraints)
             } else {
               let rTop = right.topAnchor.constraint(equalTo: self.container.topAnchor, constant: 14)
               let rBottom = right.bottomAnchor.constraint(equalTo: self.container.bottomAnchor)
